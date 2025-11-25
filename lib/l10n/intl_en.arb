@@ -1,0 +1,23 @@
+{
+  "helloWorld": "Hello World!",
+  "cancel": "Cancel",
+  "no_internet_connection": "No internet connection",
+  "error_occurred_please_try_again_later": "Error occurred please try again later",
+  "welcome_back": "WELCOME BACK",
+  "account_log_in": "Account Log In",
+  "forgot_password": "Forgot Password?",
+  "login": "Login",
+  "dont_have_an_account": "Don't have an account?",
+  "sign_up": "Sign Up",
+  "create_account": "Create Account",
+  "enter_your_email": "Enter your email",
+  "enter_password": "Enter password",
+  "enter_your_name": "Enter your name",
+  "confirm_password": "Confirm password",
+  "please_fill_all_fields": "Please fill all fields",
+  "please_enter_valid_email": "Please enter valid email",
+  "please_enter_valid_password": "Please enter 1 Special,1 Upper,1 Lower and minimum 8 characters",
+  "account_created_successfully": "Account created successfully",
+  "login_successfully": "Login successfully",
+  "password_does_not_match": "Password does not match"
+}
