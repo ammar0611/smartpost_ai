@@ -9,7 +9,7 @@ import 'app_initializer.dart';
 import 'app_provider.dart';
 
 Future<void> main() async {
-  Gemini.init(apiKey: Constant.geminiApiKey);
+  Gemini.init(apiKey: Constant.geminiApiKey2);
   WidgetsFlutterBinding.ensureInitialized();
   await AppInitializer.initialize(); // Call your app initialization method
   runApp(const MyApp());
