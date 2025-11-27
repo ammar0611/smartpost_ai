@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:smartpost_ai/utils/preference.dart';
+import 'package:smartpost_ai/utils/custom_widgets.dart';
+import 'package:smartpost_ai/utils/responsive_utils.dart';
 import 'package:smartpost_ai/values/constant.dart';
+import 'package:smartpost_ai/values/colors.dart' as app_colors;
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -70,7 +73,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
       });
       Pref.setValue('hf_api_key', newValue);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('API Key updated successfully')),
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle, color: app_colors.white),
+              SizedBox(width: 12),
+              Text('API Key updated successfully'),
+            ],
+          ),
+          backgroundColor: app_colors.successColor,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
       );
     }
   }
@@ -78,53 +94,245 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: app_colors.bgSecondary,
       appBar: AppBar(
         title: const Text('Settings'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Hugging Face API Key',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ? const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(app_colors.primaryColor),
+              ),
+            )
+          : SingleChildScrollView(
+              child: ResponsivePadding(
+                child: MaxWidthContainer(
+                  maxWidth: 800,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHeaderSection(),
+                      const SizedBox(height: 24),
+                      _buildApiKeySection(),
+                      const SizedBox(height: 24),
+                      _buildInfoSection(),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Select an API key to use for image generation.',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _selectedApiKey,
-                        isExpanded: true,
-                        hint: const Text('Select API Key'),
-                        items: _apiKeys.map((String key) {
-                          return DropdownMenuItem<String>(
-                            value: key,
-                            child: Text(
-                              key,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: _onApiKeyChanged,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
+    );
+  }
+
+  Widget _buildHeaderSection() {
+    return CustomCard(
+      padding: const EdgeInsets.all(24),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              gradient: app_colors.primaryGradient,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.settings,
+              color: app_colors.white,
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 16),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Application Settings',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: app_colors.textPrimary,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Configure your SmartPost AI preferences',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: app_colors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildApiKeySection() {
+    return CustomCard(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: app_colors.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.key,
+                  color: app_colors.primaryColor,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Hugging Face API Key',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: app_colors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: app_colors.infoColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: app_colors.infoColor.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  color: app_colors.infoColor,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Select an API key to use for AI image generation',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: app_colors.textPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Active API Key',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: app_colors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          CustomDropdown<String>(
+            value: _selectedApiKey,
+            hint: 'Select API Key',
+            prefixIcon: Icons.vpn_key,
+            items: _apiKeys.map((String key) {
+              return DropdownMenuItem<String>(
+                value: key,
+                child: Text(
+                  key,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 13),
+                ),
+              );
+            }).toList(),
+            onChanged: _onApiKeyChanged,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoSection() {
+    return CustomCard(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: app_colors.secondaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.info,
+                  color: app_colors.secondaryColor,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'About API Keys',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: app_colors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildInfoItem(
+            Icons.check_circle_outline,
+            'API keys are securely stored in Firestore',
+            app_colors.successColor,
+          ),
+          const SizedBox(height: 12),
+          _buildInfoItem(
+            Icons.shield_outlined,
+            'Your keys are encrypted and protected',
+            app_colors.infoColor,
+          ),
+          const SizedBox(height: 12),
+          _buildInfoItem(
+            Icons.swap_horiz,
+            'Switch between different keys anytime',
+            app_colors.accentColor,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoItem(IconData icon, String text, Color color) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 14,
+              color: app_colors.textSecondary,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

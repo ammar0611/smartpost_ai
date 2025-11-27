@@ -1,24 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:loader_overlay/loader_overlay.dart';
-import 'package:smartpost_ai/features/gen_ai/gen_ai_screen.dart';
+import 'package:smartpost_ai/features/home/home_screen.dart';
 import 'package:smartpost_ai/utils/routes.dart';
+import 'package:smartpost_ai/utils/theme_data.dart';
 import 'package:smartpost_ai/values/constant.dart';
+import 'package:smartpost_ai/values/colors.dart' as app_colors;
 import 'package:provider/provider.dart';
 import 'app_initializer.dart';
 import 'app_provider.dart';
 
 Future<void> main() async {
-  Gemini.init(apiKey: Constant.geminiApiKey2);
   WidgetsFlutterBinding.ensureInitialized();
   await AppInitializer.initialize(); // Call your app initialization method
+
+  String apiKey = Constant.geminiApiKey;
+  try {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('currentGeminiApiKey')
+        .limit(1)
+        .get();
+    if (snapshot.docs.isNotEmpty) {
+      final data = snapshot.docs.first.data();
+      if (data.containsKey('apiKey')) {
+        apiKey = data['apiKey'];
+      }
+    }
+  } catch (e) {
+    debugPrint('Error fetching Gemini API key: $e');
+  }
+
+  Gemini.init(apiKey: apiKey);
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
@@ -29,11 +48,15 @@ class MyApp extends StatelessWidget {
           useDefaultLoading: false,
           overlayColor: Colors.black.withOpacity(0.5),
           overlayWidgetBuilder: (_) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(100),
-                child: CircularProgressIndicator(
-                  color: Colors.white,
+            return Center(
+              child: Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: app_colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(app_colors.primaryColor),
                 ),
               ),
             );
@@ -42,28 +65,31 @@ class MyApp extends StatelessWidget {
             return Stack(
               children: [
                 MaterialApp(
-                  // scrollBehavior: const MaterialScrollBehavior().copyWith(
-                  //   dragDevices: {PointerDeviceKind.mouse, PointerDeviceKind.touch, PointerDeviceKind.stylus},
-                  // ),
-                    theme: ThemeData(
-                      fontFamily: 'OpenSans',
-                    ),
-                    // locale: Locale(provider.appLanguage ?? 'en'),
+                    title: 'SmartPost AI',
+                    theme: AppTheme.lightTheme,
+                    darkTheme: AppTheme.darkTheme,
+                    themeMode: ThemeMode.light,
                     debugShowCheckedModeBanner: false,
-                    // initialRoute: Constant.homePage,  // MAIN APP ROUTE
-                    home: const GenAiScreen(),
-                    color: Colors.black,
+                    home: const HomeScreen(),
                     onGenerateRoute: (settings) {
                       return Routes.generateRoutes(settings);
                     }),
-                const Align(
-                  alignment: Alignment.bottomLeft,
-                  child: Padding(
-                    padding: EdgeInsets.all(5.0),
+                Positioned(
+                  bottom: 8,
+                  left: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: app_colors.white.withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     child: Text(
-                      // 'Version: ${provider.packageInfo?.version ?? ''} + ${provider.packageInfo?.buildNumber ?? ''}',
-                      '',
-                      style: TextStyle(color: Colors.black, fontSize: 8),
+                      'v${AppInitializer.packageInfo?.version ?? ''}+${AppInitializer.packageInfo?.buildNumber ?? ''}',
+                      style: const TextStyle(
+                        color: app_colors.textSecondary,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ),

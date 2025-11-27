@@ -3,14 +3,19 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:smartpost_ai/features/settings/settings_screen.dart';
 import 'package:smartpost_ai/utils/preference.dart';
 import 'package:smartpost_ai/utils/log_utils.dart';
+import 'package:smartpost_ai/utils/custom_widgets.dart';
+import 'package:smartpost_ai/utils/responsive_utils.dart';
 import 'package:smartpost_ai/values/constant.dart';
+import 'package:smartpost_ai/values/colors.dart' as app_colors;
 import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:typed_data';
 
 class GenAiScreen extends StatefulWidget {
-  const GenAiScreen({super.key});
+  final bool showAppBar;
+  
+  const GenAiScreen({super.key, this.showAppBar = true});
 
   @override
   State<GenAiScreen> createState() => _GenAiScreenState();
@@ -119,31 +124,61 @@ class _GenAiScreenState extends State<GenAiScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final body = ResponsiveLayout(
+      mobile: _buildMobileLayout(),
+      tablet: _buildTabletLayout(),
+      desktop: _buildDesktopLayout(),
+    );
+
+    if (!widget.showAppBar) {
+      return body;
+    }
+
     return Scaffold(
+      backgroundColor: app_colors.bgSecondary,
       appBar: AppBar(
-        title: const Text('Gen AI Creator'),
+        elevation: 0,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: app_colors.primaryGradient,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.auto_awesome,
+                color: app_colors.white,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'SmartPost AI',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 22,
+              ),
+            ),
+          ],
+        ),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings),
+            icon: const Icon(Icons.settings_outlined),
             onPressed: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const SettingsScreen()),
               );
             },
+            tooltip: 'Settings',
           ),
+          const SizedBox(width: 8),
         ],
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxWidth > Constant.breakPoint_800) {
-            return _buildWebLayout();
-          } else {
-            return _buildMobileLayout();
-          }
-        },
-      ),
+      body: body,
     );
   }
 
@@ -153,161 +188,369 @@ class _GenAiScreenState extends State<GenAiScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _buildHeaderSection(),
+          const SizedBox(height: 24),
           _buildInputSection(),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           _buildResultSection(),
         ],
       ),
     );
   }
 
-  Widget _buildWebLayout() {
-    return Center(
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 800),
-        padding: const EdgeInsets.all(32.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildTabletLayout() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32.0),
+      child: MaxWidthContainer(
+        maxWidth: 900,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              flex: 1,
-              child: Column(
-                children: [
-                  _buildInputSection(),
-                ],
-              ),
-            ),
-            const SizedBox(width: 32),
-            Expanded(
-              flex: 1,
-              child: _buildResultSection(),
-            ),
+            _buildHeaderSection(),
+            const SizedBox(height: 32),
+            _buildInputSection(),
+            const SizedBox(height: 32),
+            _buildResultSection(),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildDesktopLayout() {
+    return SingleChildScrollView(
+      child: MaxWidthContainer(
+        maxWidth: 1400,
+        child: Padding(
+          padding: const EdgeInsets.all(48.0),
+          child: Column(
+            children: [
+              _buildHeaderSection(),
+              const SizedBox(height: 48),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 5,
+                    child: _buildInputSection(),
+                  ),
+                  const SizedBox(width: 32),
+                  Expanded(
+                    flex: 7,
+                    child: _buildResultSection(),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeaderSection() {
+    return CustomCard(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: app_colors.accentGradient,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.auto_awesome,
+              size: 32,
+              color: app_colors.white,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'AI-Powered Content Creator',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: app_colors.textPrimary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Generate engaging text and stunning images with advanced AI',
+            style: TextStyle(
+              fontSize: 14,
+              color: app_colors.textSecondary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildInputSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey),
-            borderRadius: BorderRadius.circular(12),
+    return CustomCard(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: app_colors.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.brush,
+                  color: app_colors.primaryColor,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Create Content',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: app_colors.textPrimary,
+                ),
+              ),
+            ],
           ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: _selectedModelUrl,
-              isExpanded: true,
-              hint: const Text('Select Model'),
-              items: _models.entries.map((entry) {
-                return DropdownMenuItem<String>(
-                  value: entry.value,
-                  child: Text(entry.key),
-                );
-              }).toList(),
-              onChanged: (String? newValue) {
-                if (newValue != null) {
-                  setState(() {
-                    _selectedModelUrl = newValue;
-                  });
-                }
-              },
+          const SizedBox(height: 20),
+          const Text(
+            'Image Model',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: app_colors.textPrimary,
             ),
           ),
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _promptController,
-          maxLines: 5,
-          decoration: InputDecoration(
-            hintText: 'Enter your prompt here...',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            filled: true,
-            fillColor: Colors.grey[100],
+          const SizedBox(height: 8),
+          CustomDropdown<String>(
+            value: _selectedModelUrl,
+            hint: 'Select Image Model',
+            prefixIcon: Icons.image,
+            items: _models.entries.map((entry) {
+              return DropdownMenuItem<String>(
+                value: entry.value,
+                child: Text(entry.key),
+              );
+            }).toList(),
+            onChanged: (String? newValue) {
+              if (newValue != null) {
+                setState(() {
+                  _selectedModelUrl = newValue;
+                });
+              }
+            },
           ),
-        ),
-        const SizedBox(height: 16),
-        ElevatedButton(
-          onPressed: _isLoading ? null : _handleGenerate,
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+          const SizedBox(height: 20),
+          const Text(
+            'Your Prompt',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: app_colors.textPrimary,
             ),
           ),
-          child: _isLoading
-              ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Generate Content'),
-        ),
-      ],
+          const SizedBox(height: 8),
+          TextField(
+            controller: _promptController,
+            maxLines: 6,
+            decoration: InputDecoration(
+              hintText: 'Describe what you want to create...\n\nExample: A futuristic city with flying cars at sunset',
+              hintStyle: TextStyle(color: app_colors.textLight, fontSize: 14),
+              filled: true,
+              fillColor: app_colors.grey100,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: app_colors.grey300),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: app_colors.primaryColor, width: 2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          GradientButton(
+            text: 'Generate Content',
+            icon: Icons.auto_awesome,
+            isLoading: _isLoading,
+            onPressed: _isLoading ? null : _handleGenerate,
+            height: 56,
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildResultSection() {
     if (!_isLoading && _generatedText == null && _generatedImageBytes == null) {
-      return const Center(
-        child: Text(
-          'Your generated content will appear here.',
-          style: TextStyle(color: Colors.grey),
-          textAlign: TextAlign.center,
+      return CustomCard(
+        padding: const EdgeInsets.all(48),
+        child: EmptyStateWidget(
+          icon: Icons.auto_awesome_outlined,
+          title: 'Ready to Create',
+          subtitle: 'Your AI-generated content will appear here.\nEnter a prompt and click generate to start.',
         ),
       );
     }
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (_generatedText != null) ...[
-            const Text(
-              'Generated Text:',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (_generatedText != null) ...[
+          CustomCard(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: app_colors.infoColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.text_fields,
+                        color: app_colors.infoColor,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Generated Text',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: app_colors.textPrimary,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.copy, size: 20),
+                      color: app_colors.textSecondary,
+                      onPressed: () {
+                        // Copy to clipboard functionality
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Text copied to clipboard')),
+                        );
+                      },
+                      tooltip: 'Copy to clipboard',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: app_colors.grey100,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: app_colors.grey300),
+                  ),
+                  child: SelectableText(
+                    _generatedText!,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: app_colors.textPrimary,
+                      height: 1.6,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue[50],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.shade100),
-              ),
-              child: Text(_generatedText!),
-            ),
-            const SizedBox(height: 20),
-          ],
-          if (_generatedImageBytes != null) ...[
-            const Text(
-              'Generated Image:',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.memory(
-                _generatedImageBytes!,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    height: 200,
-                    color: Colors.grey[300],
-                    child: const Center(child: Icon(Icons.error)),
-                  );
-                },
-              ),
-            ),
-          ],
+          ),
+          const SizedBox(height: 20),
         ],
-      ),
+        if (_generatedImageBytes != null) ...[
+          CustomCard(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: app_colors.accentColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.image,
+                        color: app_colors.accentColor,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Generated Image',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: app_colors.textPrimary,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.download, size: 20),
+                      color: app_colors.textSecondary,
+                      onPressed: () {
+                        // Download functionality
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Image download started')),
+                        );
+                      },
+                      tooltip: 'Download image',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.memory(
+                    _generatedImageBytes!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        height: 300,
+                        decoration: BoxDecoration(
+                          color: app_colors.grey200,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.error_outline, size: 48, color: app_colors.errorColor),
+                              SizedBox(height: 8),
+                              Text(
+                                'Error loading image',
+                                style: TextStyle(color: app_colors.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
