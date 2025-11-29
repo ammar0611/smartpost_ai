@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:loader_overlay/loader_overlay.dart';
 import 'package:smartpost_ai/features/home/home_screen.dart';
+import 'package:smartpost_ai/utils/log_utils.dart';
 import 'package:smartpost_ai/utils/routes.dart';
 import 'package:smartpost_ai/utils/theme_data.dart';
 import 'package:smartpost_ai/values/constant.dart';
@@ -30,7 +31,7 @@ Future<void> main() async {
   } catch (e) {
     debugPrint('Error fetching Gemini API key: $e');
   }
-
+  Log.e('Using Gemini API Key: $apiKey');
   Gemini.init(apiKey: apiKey);
   runApp(const MyApp());
 }

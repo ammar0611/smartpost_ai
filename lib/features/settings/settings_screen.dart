@@ -15,7 +15,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   String? _selectedApiKey;
-  List<String> _apiKeys = [];
+  List<Map<String, String>> _apiKeys = []; // List of {name, apiKey}
   bool _isLoading = true;
 
   @override
@@ -32,9 +32,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
           .get();
 
       final keys = snapshot.docs
-          .map((doc) => doc.data()['apiKey'] as String?)
-          .where((key) => key != null && key.isNotEmpty)
-          .cast<String>()
+          .map((doc) {
+            final data = doc.data();
+            final apiKey = data['apiKey'] as String?;
+            final name = data['name'] as String? ?? 'Unnamed Key';
+            if (apiKey != null && apiKey.isNotEmpty) {
+              return {'name': name, 'apiKey': apiKey};
+            }
+            return null;
+          })
+          .where((item) => item != null)
+          .cast<Map<String, String>>()
           .toList();
 
       // Get currently saved key
@@ -44,8 +52,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
 
       // Ensure saved key is in the list (or add it if it's the default constant and not in DB)
-      if (!keys.contains(savedKey) && savedKey.isNotEmpty) {
-        keys.add(savedKey);
+      final keyExists = keys.any((item) => item['apiKey'] == savedKey);
+      if (!keyExists && savedKey.isNotEmpty) {
+        keys.add({'name': 'Default Key', 'apiKey': savedKey});
       }
 
       setState(() {
@@ -60,7 +69,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         // Fallback to current saved or default
         String savedKey = Pref.getValue('hf_api_key');
         if (savedKey.isEmpty) savedKey = Constant.HFApiKey;
-        _apiKeys = [savedKey];
+        _apiKeys = [{'name': 'Default Key', 'apiKey': savedKey}];
         _selectedApiKey = savedKey;
       });
     }
@@ -247,11 +256,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             value: _selectedApiKey,
             hint: 'Select API Key',
             prefixIcon: Icons.vpn_key,
-            items: _apiKeys.map((String key) {
+            items: _apiKeys.map((Map<String, String> item) {
+              final name = item['name'] ?? 'Unnamed';
+              final apiKey = item['apiKey'] ?? '';
+              final displayText = '$name (${apiKey.length > 15 ? '${apiKey.substring(0, 15)}...' : apiKey})';
               return DropdownMenuItem<String>(
-                value: key,
+                value: apiKey,
                 child: Text(
-                  key,
+                  displayText,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 13),
                 ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:smartpost_ai/features/settings/settings_screen.dart';
 import 'package:smartpost_ai/utils/preference.dart';
@@ -11,6 +12,14 @@ import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:html' as html;
+
+extension StringExtension on String {
+  String capitalize() {
+    if (isEmpty) return this;
+    return '${this[0].toUpperCase()}${substring(1)}';
+  }
+}
 
 class GenAiScreen extends StatefulWidget {
   final bool showAppBar;
@@ -52,10 +61,18 @@ class _GenAiScreenState extends State<GenAiScreen> {
     });
 
     try {
-      // 1. Generate Text with Gemini
+      // 1. Generate Caption with Gemini
       final gemini = Gemini.instance;
-      final textResponse = await gemini.text(prompt);
-      final text = textResponse?.output ?? "No text generated.";
+      final captionPrompt = 'Create an engaging social media caption for: "$prompt". Include emojis and 3-5 hashtags. Keep it short (2-3 sentences). Provide only the caption.';
+      
+      String text = "No caption generated.";
+      try {
+        final textResponse = await gemini.text(captionPrompt);
+        text = textResponse?.output ?? "No caption generated.";
+      } catch (geminiError) {
+        Log.e('Gemini API error: $geminiError');
+        text = "Caption generation failed. Please check your Gemini API key in Firebase.";
+      }
 
       // 2. Generate Image with Hugging Face
       Uint8List? imageBytes;
@@ -102,6 +119,7 @@ class _GenAiScreenState extends State<GenAiScreen> {
         _generatedImageBytes = imageBytes;
       });
     } catch (e) {
+      Log.e('Error during generation: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
@@ -120,6 +138,238 @@ class _GenAiScreenState extends State<GenAiScreen> {
   void dispose() {
     _promptController.dispose();
     super.dispose();
+  }
+
+  void _downloadImage() {
+    if (_generatedImageBytes == null) return;
+    
+    try {
+      final blob = html.Blob([_generatedImageBytes!], 'image/png');
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', 'smartpost_ai_${DateTime.now().millisecondsSinceEpoch}.png')
+        ..click();
+      html.Url.revokeObjectUrl(url);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle, color: app_colors.white),
+              SizedBox(width: 12),
+              Text('Image downloaded successfully!'),
+            ],
+          ),
+          backgroundColor: app_colors.successColor,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    } catch (e) {
+      Log.e('Error downloading image: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error downloading image: $e'),
+          backgroundColor: app_colors.errorColor,
+        ),
+      );
+    }
+  }
+
+  void _showShareDialog() {
+    if (_generatedImageBytes == null) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        contentPadding: const EdgeInsets.all(24),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Share to Social Media',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: app_colors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Download the image first, then share it on your favorite platform',
+              style: TextStyle(
+                fontSize: 13,
+                color: app_colors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildShareOption(
+                  icon: Icons.facebook,
+                  label: 'Facebook',
+                  color: const Color(0xFF1877F2),
+                  onTap: () => _shareToSocialMedia('facebook'),
+                ),
+                _buildShareOption(
+                  icon: Icons.camera_alt,
+                  label: 'Instagram',
+                  color: const Color(0xFFE4405F),
+                  onTap: () => _shareToSocialMedia('instagram'),
+                ),
+                _buildShareOption(
+                  icon: Icons.alternate_email,
+                  label: 'Twitter/X',
+                  color: const Color(0xFF000000),
+                  onTap: () => _shareToSocialMedia('twitter'),
+                ),
+                _buildShareOption(
+                  icon: Icons.link,
+                  label: 'LinkedIn',
+                  color: const Color(0xFF0A66C2),
+                  onTap: () => _shareToSocialMedia('linkedin'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildShareOption(
+                  icon: Icons.message,
+                  label: 'WhatsApp',
+                  color: const Color(0xFF25D366),
+                  onTap: () => _shareToSocialMedia('whatsapp'),
+                ),
+                _buildShareOption(
+                  icon: Icons.telegram,
+                  label: 'Telegram',
+                  color: const Color(0xFF0088CC),
+                  onTap: () => _shareToSocialMedia('telegram'),
+                ),
+                _buildShareOption(
+                  icon: Icons.pin_drop_rounded,
+                  label: 'Pinterest',
+                  color: const Color(0xFFBD081C),
+                  onTap: () => _shareToSocialMedia('pinterest'),
+                ),
+                _buildShareOption(
+                  icon: Icons.download,
+                  label: 'Download',
+                  color: app_colors.primaryColor,
+                  onTap: () {
+                    Navigator.pop(context);
+                    _downloadImage();
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShareOption({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                color: app_colors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _shareToSocialMedia(String platform) {
+    Navigator.pop(context);
+    
+    // First download the image
+    _downloadImage();
+    
+    // Open the social media platform
+    String url = '';
+    String message = _generatedText ?? 'Check out this AI-generated image!';
+    String encodedMessage = Uri.encodeComponent(message);
+    
+    switch (platform) {
+      case 'facebook':
+        url = 'https://www.facebook.com/';
+        break;
+      case 'instagram':
+        url = 'https://www.instagram.com/';
+        break;
+      case 'twitter':
+        url = 'https://twitter.com/intent/tweet?text=$encodedMessage';
+        break;
+      case 'linkedin':
+        url = 'https://www.linkedin.com/feed/';
+        break;
+      case 'whatsapp':
+        url = 'https://web.whatsapp.com/';
+        break;
+      case 'telegram':
+        url = 'https://web.telegram.org/';
+        break;
+      case 'pinterest':
+        url = 'https://www.pinterest.com/';
+        break;
+    }
+    
+    if (url.isNotEmpty) {
+      html.window.open(url, '_blank');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.info_outline, color: app_colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text('Image downloaded! Upload it to ${platform.capitalize()} to share.'),
+              ),
+            ],
+          ),
+          backgroundColor: app_colors.infoColor,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
   }
 
   @override
@@ -442,10 +692,25 @@ class _GenAiScreenState extends State<GenAiScreen> {
                       icon: const Icon(Icons.copy, size: 20),
                       color: app_colors.textSecondary,
                       onPressed: () {
-                        // Copy to clipboard functionality
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Text copied to clipboard')),
-                        );
+                        if (_generatedText != null) {
+                          Clipboard.setData(ClipboardData(text: _generatedText!));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Row(
+                                children: [
+                                  Icon(Icons.check_circle, color: app_colors.white),
+                                  SizedBox(width: 12),
+                                  Text('Text copied to clipboard!'),
+                                ],
+                              ),
+                              backgroundColor: app_colors.successColor,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          );
+                        }
                       },
                       tooltip: 'Copy to clipboard',
                     ),
@@ -504,14 +769,15 @@ class _GenAiScreenState extends State<GenAiScreen> {
                     ),
                     const Spacer(),
                     IconButton(
+                      icon: const Icon(Icons.share, size: 20),
+                      color: app_colors.textSecondary,
+                      onPressed: _showShareDialog,
+                      tooltip: 'Share to social media',
+                    ),
+                    IconButton(
                       icon: const Icon(Icons.download, size: 20),
                       color: app_colors.textSecondary,
-                      onPressed: () {
-                        // Download functionality
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Image download started')),
-                        );
-                      },
+                      onPressed: _downloadImage,
                       tooltip: 'Download image',
                     ),
                   ],
