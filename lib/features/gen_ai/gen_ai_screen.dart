@@ -63,7 +63,7 @@ class _GenAiScreenState extends State<GenAiScreen> {
     try {
       // 1. Generate Caption with Gemini
       final gemini = Gemini.instance;
-      final captionPrompt = 'Create an engaging social media caption for: "$prompt". Include emojis and 3-5 hashtags. Keep it short (2-3 sentences). Provide only the caption.';
+      final captionPrompt = 'Create an engaging social media caption for: "$prompt". Include emojis and 3-5 hashtags. Keep it short (5-6 sentences). Provide only the caption.';
       
       String text = "No caption generated.";
       try {
